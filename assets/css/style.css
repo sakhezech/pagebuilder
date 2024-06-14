@@ -1,0 +1,85 @@
+.rose-pine {
+  /* Rosé Pine - https://github.com/rose-pine/palette */
+  --background: hsl(249deg, 22%, 5%);
+  --foreground: hsl(245deg, 50%, 91%);
+  --highlight: hsl(249deg, 15%, 28%);
+
+  --red: hsl(343deg, 76%, 68%);
+  --yellow: hsl(35deg, 88%, 72%);
+  --cyan: hsl(2deg, 55%, 83%);
+  --green: hsl(197deg, 49%, 38%);
+  --blue: hsl(189deg, 43%, 73%);
+  --magenta: hsl(267deg, 57%, 78%);
+}
+
+.gruvbox {
+  /* gruvbox - https://github.com/morhetz/gruvbox */
+  --background: hsl(0deg, 0%, 16%);
+  --foreground: hsl(43deg, 59%, 81%);
+  --highlight: hsl(27deg, 10%, 36%);
+
+  --red: hsl(6deg, 96%, 60%);
+  --yellow: hsl(42deg, 95%, 58%);
+  --cyan: hsl(104deg, 35%, 62%);
+  --green: hsl(61deg, 66%, 44%);
+  --blue: hsl(157deg, 16%, 58%);
+  --magenta: hsl(344deg, 47%, 68%);
+}
+
+::selection {
+  background-color: var(--highlight);
+}
+
+body {
+  margin: 0px;
+  padding-inline: 1rem;
+  min-height: 100vh;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, monospace;
+}
+
+main h1 {
+  margin-top: 0;
+}
+
+nav {
+  padding-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+fieldset {
+  background-color: color-mix(in hsl, var(--red) 30%, transparent);
+  border-color: var(--foreground);
+}
+
+a {
+  color: var(--red);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.container {
+  max-width: 75ch;
+  margin-inline: auto;
+}
+
+.pronunciation {
+  position: absolute;
+  width: fit-content;
+  height: fit-content;
+  inset: 0;
+  margin: auto;
+  text-align: center;
+
+  & span {
+    font-size: 16vw;
+  }
+}
