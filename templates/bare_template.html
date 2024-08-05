@@ -4,13 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{$title}}Title{{/title}}</title>
+  <title>{{title}}</title>
   <link href="/assets/css/style.css" rel="stylesheet">
 </head>
 
-<body class="{{$theme}}rose-pine{{/theme}}">
-  {{$inner}}
-  {{/inner}}
+<body class="{{^theme}}rose-pine{{/theme}}{{theme}}">
+
+  {{{slot}}}
+
 </body>
 
 </html>

@@ -1,37 +1,88 @@
 import shutil
 from pathlib import Path
+from typing import Any, NamedTuple, Self
 
 import combustache
+import yaml
 
-HTML = '.html'
+SRC_PATH = Path('./src/')
+TEMPLATE_PATH = Path('./templates/')
+DIST_PATH = Path('./dist/')
+ASSETS_PATH = Path('./assets/')
 
-src_path = Path('./src/')
-dist_path = Path('./dist/')
-assets_path = Path('./assets/')
-data = dict()
+EXT = '.html'
+COMMENT_START = '<!-- YAML:\n'
+COMMENT_END = '-->\n'
 
-shutil.rmtree(dist_path, ignore_errors=True)
 
-paths = src_path.rglob(f'**/*{HTML}')
-templates = combustache.load_templates(
-    src_path, HTML, include_relative_path=True
-)
+class Page(NamedTuple):
+    txt: str
+    data: dict[str, Any]
+    path: Path
 
-for path in paths:
-    if path.name.startswith('_'):
-        continue
+    def render(self, templates: dict[str, Self]) -> str:
+        template_stack = [self.txt]
+        merged_data = self.data
+        curr = self
 
-    if path.name.removesuffix(HTML) == 'index':
-        output_dir_path = dist_path / (path.parent.relative_to(src_path))
-    else:
-        output_dir_path = (
-            dist_path
-            / path.parent.relative_to(src_path)
-            / path.name.removesuffix(HTML)
-        )
-    output_dir_path.mkdir(parents=True, exist_ok=True)
+        while curr.data.get('template', None):
+            template_name = curr.data['template']
+            curr = templates[template_name]
 
-    res = combustache.render(path.read_text(), data, templates)
-    (output_dir_path / 'index.html').write_text(res)
+            template_stack.append(curr.txt)
+            merged_data = curr.data | merged_data
 
-shutil.copytree(assets_path, dist_path / assets_path)
+        for txt in template_stack:
+            rendered = combustache.render(txt, merged_data)
+            merged_data['slot'] = rendered
+
+        return merged_data['slot']
+
+    def save(self, txt: str) -> None:
+        path = self.path
+        if path.name.removesuffix(EXT) == 'index':
+            output_dir_path = DIST_PATH / (path.parent.relative_to(SRC_PATH))
+        else:
+            output_dir_path = (
+                DIST_PATH
+                / path.parent.relative_to(SRC_PATH)
+                / path.name.removesuffix(EXT)
+            )
+        output_dir_path.mkdir(parents=True, exist_ok=True)
+
+        (output_dir_path / 'index.html').write_text(txt)
+
+    def render_and_save(self, templates: dict[str, Self]) -> None:
+        self.save(self.render(templates))
+
+
+def load_pages(path: Path) -> dict[str, Page]:
+    pages = {}
+    for file in path.rglob(f'**/*{EXT}'):
+        name = file.name.removesuffix(EXT)
+        raw_txt = file.read_text()
+
+        if raw_txt.startswith(COMMENT_START):
+            data_start = len(COMMENT_START)
+            data_end = raw_txt.find(COMMENT_END)
+            txt_start = data_end + len(COMMENT_END)
+
+            data_txt = raw_txt[data_start:data_end]
+            data = yaml.load(data_txt, yaml.Loader)
+            txt = raw_txt[txt_start:]
+        else:
+            data = {}
+            txt = raw_txt
+
+        pages[name] = Page(txt, data, file)
+    return pages
+
+
+if __name__ == '__main__':
+    pages = load_pages(SRC_PATH)
+    templates = load_pages(TEMPLATE_PATH)
+
+    shutil.rmtree(DIST_PATH, ignore_errors=True)
+    for page in pages.values():
+        page.render_and_save(templates)
+    shutil.copytree(ASSETS_PATH, DIST_PATH / ASSETS_PATH)
