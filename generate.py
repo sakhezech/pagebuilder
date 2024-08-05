@@ -55,12 +55,9 @@ class Page(NamedTuple):
     def render_and_save(self, templates: dict[str, Self]) -> None:
         self.save(self.render(templates))
 
-
-def load_pages(path: Path) -> dict[str, Page]:
-    pages = {}
-    for file in path.rglob(f'**/*{EXT}'):
-        name = file.name.removesuffix(EXT)
-        raw_txt = file.read_text()
+    @classmethod
+    def load(cls, path: Path) -> Self:
+        raw_txt = path.read_text()
 
         if raw_txt.startswith(COMMENT_START):
             data_start = len(COMMENT_START)
@@ -73,9 +70,14 @@ def load_pages(path: Path) -> dict[str, Page]:
         else:
             data = {}
             txt = raw_txt
+        return cls(txt, data, path)
 
-        pages[name] = Page(txt, data, file)
-    return pages
+
+def load_pages(path: Path) -> dict[str, Page]:
+    return {
+        file.name.removesuffix(EXT): Page.load(file)
+        for file in path.rglob(f'**/*{EXT}')
+    }
 
 
 if __name__ == '__main__':
