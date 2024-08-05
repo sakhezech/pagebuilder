@@ -5,7 +5,7 @@ from typing import Any, NamedTuple, Self
 import combustache
 import yaml
 
-SRC_PATH = Path('./src/')
+PAGES_PATH = Path('./pages/')
 TEMPLATE_PATH = Path('./templates/')
 DIST_PATH = Path('./dist/')
 ASSETS_PATH = Path('./assets/')
@@ -41,11 +41,11 @@ class Page(NamedTuple):
     def save(self, txt: str) -> None:
         path = self.path
         if path.name.removesuffix(EXT) == 'index':
-            output_dir_path = DIST_PATH / (path.parent.relative_to(SRC_PATH))
+            output_dir_path = DIST_PATH / (path.parent.relative_to(PAGES_PATH))
         else:
             output_dir_path = (
                 DIST_PATH
-                / path.parent.relative_to(SRC_PATH)
+                / path.parent.relative_to(PAGES_PATH)
                 / path.name.removesuffix(EXT)
             )
         output_dir_path.mkdir(parents=True, exist_ok=True)
@@ -79,7 +79,7 @@ def load_pages(path: Path) -> dict[str, Page]:
 
 
 if __name__ == '__main__':
-    pages = load_pages(SRC_PATH)
+    pages = load_pages(PAGES_PATH)
     templates = load_pages(TEMPLATE_PATH)
 
     shutil.rmtree(DIST_PATH, ignore_errors=True)
