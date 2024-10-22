@@ -16,12 +16,12 @@ COMMENT_END = '-->\n'
 
 
 class Page(NamedTuple):
-    txt: str
+    content: str
     data: dict[str, Any]
     path: Path
 
     def render(self, templates: dict[str, Self]) -> str:
-        template_stack = [self.txt]
+        template_stack = [self.content]
         merged_data = self.data
         curr = self
 
@@ -29,7 +29,7 @@ class Page(NamedTuple):
             template_name = curr.data['template']
             curr = templates[template_name]
 
-            template_stack.append(curr.txt)
+            template_stack.append(curr.content)
             merged_data = curr.data | merged_data
 
         for txt in template_stack:
