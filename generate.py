@@ -99,14 +99,19 @@ class Page:
             )
         return merged_data['slot']
 
-    def save(self, templates: dict[str, Self], dist_path: Path) -> None:
+    def get_save_path(self, dist_path: Path) -> Path:
         if self.name == 'index':
             output_dir_path = dist_path / self.path.parent
         else:
             output_dir_path = dist_path / self.path.parent / self.name
 
-        output_dir_path.mkdir(parents=True, exist_ok=True)
-        (output_dir_path / 'index.html').write_text(self.render(templates))
+        return output_dir_path / 'index.html'
+
+    def save(self, templates: dict[str, Self], dist_path: Path) -> None:
+        save_path = self.get_save_path(dist_path)
+
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        save_path.write_text(self.render(templates))
 
     @classmethod
     def load(
