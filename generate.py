@@ -94,7 +94,7 @@ class Page:
 
     def render(self, templates: dict[str, Self]) -> str:
         merged_data = self.data
-        merged_data['slot'] = self.content
+        merged_data['slot'] = combustache.render(self.content, self.data)
 
         if self.template_stack is None:
             raise ValueError(f'no template stack: {self}')
