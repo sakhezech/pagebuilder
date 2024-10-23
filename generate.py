@@ -42,14 +42,7 @@ class Generator:
             self.data_end,
             self.ext,
         )
-
-        dependencies: list[str] = []
-        curr = page
-        while curr.data.get('template', None):
-            template_name = curr.data['template']
-            dependencies.append(template_name)
-            curr = self.templates[template_name]
-        page.template_stack = dependencies
+        page.template_stack = make_template_stack(page, self.templates)
 
         self.pages[page_path] = page
         return page
@@ -97,7 +90,7 @@ class Page:
         merged_data['slot'] = combustache.render(self.content, self.data)
 
         if self.template_stack is None:
-            raise ValueError(f'no template stack: {self}')
+            self.template_stack = make_template_stack(self, templates)
         for template_name in self.template_stack:
             template = templates[template_name]
             merged_data = template.data | merged_data
@@ -141,6 +134,16 @@ class Page:
             txt = raw_txt
 
         return cls(txt, data, rel_path, name)
+
+
+def make_template_stack(page: 'Page', templates: dict[str, Any]) -> list[str]:
+    dependencies: list[str] = []
+    curr = page
+    while curr.data.get('template', None):
+        template_name = curr.data['template']
+        dependencies.append(template_name)
+        curr = templates[template_name]
+    return dependencies
 
 
 if __name__ == '__main__':
