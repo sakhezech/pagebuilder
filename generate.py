@@ -1,68 +1,137 @@
 import shutil
 from pathlib import Path
-from typing import Any, NamedTuple, Self
+from typing import Any, Self
 
 import combustache
 import yaml
 
-PAGES_PATH = Path('./pages/')
-TEMPLATE_PATH = Path('./templates/')
-DIST_PATH = Path('./dist/')
-ASSETS_PATH = Path('./assets/')
 
-EXT = '.html'
-COMMENT_START = '<!-- YAML:\n'
-COMMENT_END = '-->\n'
+class Generator:
+    def __init__(
+        self,
+        pages_path: Path,
+        templates_path: Path,
+        assets_path: Path,
+        dist_path: Path,
+        data_start: str = '<!-- YAML:\n',
+        data_end: str = '-->\n',
+        ext: str = '.html',
+    ) -> None:
+        self.pages_path = pages_path
+        self.templates_path = templates_path
+        self.assets_path = assets_path
+        self.dist_path = dist_path
 
+        self.ext = ext
+        self.data_start = data_start
+        self.data_end = data_end
 
-class Page(NamedTuple):
-    content: str
-    data: dict[str, Any]
-    path: Path
+        self.templates: dict[str, Page] = {}
+        for template_path in self.templates_path.rglob(f'**/*{self.ext}'):
+            self.add_template(template_path)
 
-    def render(self, templates: dict[str, Self]) -> str:
-        template_stack = [self.content]
-        merged_data = self.data
-        curr = self
+        self.pages: dict[Path, Page] = {}
+        for page_path in self.pages_path.rglob(f'**/*{self.ext}'):
+            self.add_page(page_path)
 
+    def add_page(self, page_path: Path) -> 'Page':
+        page = Page.load(
+            page_path,
+            self.pages_path,
+            self.data_start,
+            self.data_end,
+            self.ext,
+        )
+
+        dependencies: list[str] = []
+        curr = page
         while curr.data.get('template', None):
             template_name = curr.data['template']
-            curr = templates[template_name]
+            dependencies.append(template_name)
+            curr = self.templates[template_name]
+        page.template_stack = dependencies
 
-            template_stack.append(curr.content)
-            merged_data = curr.data | merged_data
+        self.pages[page_path] = page
+        return page
 
-        for txt in template_stack:
-            rendered = combustache.render(txt, merged_data)
-            merged_data['slot'] = rendered
+    def add_template(self, template_path: Path) -> 'Page':
+        template = Page.load(
+            template_path,
+            self.templates_path,
+            self.data_start,
+            self.data_end,
+            self.ext,
+        )
+        self.templates[template.name] = template
+        return template
 
+    def save_page(self, page: 'Page') -> None:
+        page.save(self.templates, self.dist_path)
+
+    def save_all(self) -> None:
+        for page in self.pages.values():
+            self.save_page(page)
+
+    def generate(self) -> None:
+        shutil.rmtree(self.dist_path, ignore_errors=True)
+        self.save_all()
+        shutil.copytree(self.assets_path, self.dist_path / self.assets_path)
+
+
+class Page:
+    def __init__(
+        self,
+        content: str,
+        data: dict[str, Any],
+        path: Path,
+        name: str,
+    ) -> None:
+        self.content = content
+        self.data = data
+        self.path = path
+        self.name = name
+        self.template_stack: list[str] | None = None
+
+    def render(self, templates: dict[str, Self]) -> str:
+        merged_data = self.data
+        merged_data['slot'] = self.content
+
+        if self.template_stack is None:
+            raise ValueError(f'no template stack: {self}')
+        for template_name in self.template_stack:
+            template = templates[template_name]
+            merged_data = template.data | merged_data
+            merged_data['slot'] = combustache.render(
+                template.content, merged_data
+            )
         return merged_data['slot']
 
-    def save(self, txt: str) -> None:
-        path = self.path
-        if path.name.removesuffix(EXT) == 'index':
-            output_dir_path = DIST_PATH / (path.parent.relative_to(PAGES_PATH))
+    def save(self, templates: dict[str, Self], dist_path: Path) -> None:
+        if self.name == 'index':
+            output_dir_path = dist_path / self.path.parent
         else:
-            output_dir_path = (
-                DIST_PATH
-                / path.parent.relative_to(PAGES_PATH)
-                / path.name.removesuffix(EXT)
-            )
+            output_dir_path = dist_path / self.path.parent / self.name
+
         output_dir_path.mkdir(parents=True, exist_ok=True)
-
-        (output_dir_path / 'index.html').write_text(txt)
-
-    def render_and_save(self, templates: dict[str, Self]) -> None:
-        self.save(self.render(templates))
+        (output_dir_path / 'index.html').write_text(self.render(templates))
 
     @classmethod
-    def load(cls, path: Path) -> Self:
+    def load(
+        cls,
+        path: Path,
+        relative_to: Path,
+        data_comment_start: str,
+        data_comment_end: str,
+        EXT: str,
+    ) -> Self:
+        rel_path = path.relative_to(relative_to)
         raw_txt = path.read_text()
+        name = path.name.removesuffix(EXT)
 
-        if raw_txt.startswith(COMMENT_START):
-            data_start = len(COMMENT_START)
-            data_end = raw_txt.find(COMMENT_END)
-            txt_start = data_end + len(COMMENT_END)
+        if raw_txt.startswith(data_comment_start):
+            data_start = len(data_comment_start)
+            data_end = raw_txt.find(data_comment_end)
+            txt_start = data_end + len(data_comment_end)
 
             data_txt = raw_txt[data_start:data_end]
             data = yaml.load(data_txt, yaml.Loader)
@@ -70,21 +139,20 @@ class Page(NamedTuple):
         else:
             data = {}
             txt = raw_txt
-        return cls(txt, data, path)
 
-
-def load_pages(path: Path) -> dict[str, Page]:
-    return {
-        file.name.removesuffix(EXT): Page.load(file)
-        for file in path.rglob(f'**/*{EXT}')
-    }
+        return cls(txt, data, rel_path, name)
 
 
 if __name__ == '__main__':
-    pages = load_pages(PAGES_PATH)
-    templates = load_pages(TEMPLATE_PATH)
+    PAGES_PATH = Path('./pages/')
+    TEMPLATE_PATH = Path('./templates/')
+    DIST_PATH = Path('./dist/')
+    ASSETS_PATH = Path('./assets/')
 
-    shutil.rmtree(DIST_PATH, ignore_errors=True)
-    for page in pages.values():
-        page.render_and_save(templates)
-    shutil.copytree(ASSETS_PATH, DIST_PATH / ASSETS_PATH)
+    gen = Generator(
+        PAGES_PATH,
+        TEMPLATE_PATH,
+        ASSETS_PATH,
+        DIST_PATH,
+    )
+    gen.generate()
