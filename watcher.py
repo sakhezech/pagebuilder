@@ -1,5 +1,6 @@
 import functools
 import http.server
+import shutil
 from os import PathLike
 from pathlib import Path
 
@@ -134,6 +135,33 @@ class TemplateHandler(WatcherFileSystemEventHandler):
         self.generator.templates.pop(template.name)
 
 
+class AssetHandler(WatcherFileSystemEventHandler):
+    def to_real_path(self, path: Path) -> Path:
+        return self.generator.dist_path / path.relative_to(
+            self.generator.assets_path
+        )
+
+    def on_created_or_modified(
+        self,
+        event: FileCreatedEvent
+        | FileModifiedEvent
+        | DirCreatedEvent
+        | DirModifiedEvent,
+    ) -> None:
+        if event.is_directory:
+            return
+
+        path = Path(str(event.src_path))
+        shutil.copy2(path, self.to_real_path(path))
+
+    def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
+        if event.is_directory:
+            return
+
+        path = Path(str(event.src_path))
+        self.to_real_path(path).unlink()
+
+
 def serve(addr: str, port: int, directory: StrPath) -> None:
     MyHandler = functools.partial(
         http.server.SimpleHTTPRequestHandler,
@@ -156,6 +184,7 @@ if __name__ == '__main__':
 
         pages_handler = PagesHandler(generator)
         template_handler = TemplateHandler(generator)
+        asset_handler = AssetHandler(generator)
 
         observer.schedule(
             pages_handler,
@@ -165,6 +194,11 @@ if __name__ == '__main__':
         observer.schedule(
             template_handler,
             str(generator.templates_path),
+            recursive=True,
+        )
+        observer.schedule(
+            asset_handler,
+            str(generator.assets_path),
             recursive=True,
         )
         observer.start()
