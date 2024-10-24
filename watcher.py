@@ -111,7 +111,9 @@ class TemplateHandler(FileSystemEventHandler):
         template = self.generator.add_template(path)
         for page in self.generator.pages.values():
             if page.template_stack is None:
-                raise ValueError
+                page.template_stack = make_template_stack(
+                    page, self.generator.templates
+                )
             if template.name in page.template_stack:
                 self.generator.save_page(page)
 
