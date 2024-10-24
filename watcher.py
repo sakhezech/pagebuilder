@@ -62,6 +62,36 @@ class WatcherGenerator(Generator):
         self.pages[page_path] = page
         return page
 
+    def observe(self) -> None:
+        self.generate()
+
+        self._observer = Observer()
+        pages_handler = PagesHandler(self)
+        template_handler = TemplateHandler(self)
+        asset_handler = AssetHandler(self)
+
+        self._observer.schedule(
+            pages_handler,
+            str(self.pages_path),
+            recursive=True,
+        )
+        self._observer.schedule(
+            template_handler,
+            str(self.templates_path),
+            recursive=True,
+        )
+        self._observer.schedule(
+            asset_handler,
+            str(self.assets_path),
+            recursive=True,
+        )
+
+        self._observer.start()
+
+    def stop_observing(self) -> None:
+        self._observer.stop()
+        self._observer.join()
+
 
 class WatcherFileSystemEventHandler(FileSystemEventHandler):
     def __init__(self, generator: WatcherGenerator) -> None:
@@ -172,38 +202,14 @@ def serve(addr: str, port: int, directory: StrPath) -> None:
 
 
 if __name__ == '__main__':
-    observer = Observer()
+    generator = WatcherGenerator(
+        Path('./pages/'),
+        Path('./templates/'),
+        Path('./assets/'),
+        Path('./dist/'),
+    )
     try:
-        generator = WatcherGenerator(
-            Path('./pages/'),
-            Path('./templates/'),
-            Path('./assets/'),
-            Path('./dist/'),
-        )
-        generator.generate()
-
-        pages_handler = PagesHandler(generator)
-        template_handler = TemplateHandler(generator)
-        asset_handler = AssetHandler(generator)
-
-        observer.schedule(
-            pages_handler,
-            str(generator.pages_path),
-            recursive=True,
-        )
-        observer.schedule(
-            template_handler,
-            str(generator.templates_path),
-            recursive=True,
-        )
-        observer.schedule(
-            asset_handler,
-            str(generator.assets_path),
-            recursive=True,
-        )
-        observer.start()
-
-        serve('localhost', 5000, 'dist')
+        generator.observe()
+        serve('localhost', 5000, generator.dist_path)
     finally:
-        observer.stop()
-        observer.join()
+        generator.stop_observing()
