@@ -62,11 +62,28 @@ class WatcherGenerator(Generator):
         return page
 
 
-class PagesHandler(FileSystemEventHandler):
+class WatcherFileSystemEventHandler(FileSystemEventHandler):
     def __init__(self, generator: WatcherGenerator) -> None:
         super().__init__()
         self.generator = generator
 
+    def on_created_or_modified(
+        self,
+        event: FileCreatedEvent
+        | FileModifiedEvent
+        | DirCreatedEvent
+        | DirModifiedEvent,
+    ) -> None:
+        pass
+
+    def on_created(self, event: DirCreatedEvent | FileCreatedEvent) -> None:
+        self.on_created_or_modified(event)
+
+    def on_modified(self, event: DirModifiedEvent | FileModifiedEvent) -> None:
+        self.on_created_or_modified(event)
+
+
+class PagesHandler(WatcherFileSystemEventHandler):
     def on_created_or_modified(
         self,
         event: FileCreatedEvent
@@ -90,18 +107,8 @@ class PagesHandler(FileSystemEventHandler):
         page.get_save_path(self.generator.dist_path).unlink()
         del self.generator.template_stacks_of_pages[page]
 
-    def on_created(self, event: DirCreatedEvent | FileCreatedEvent) -> None:
-        self.on_created_or_modified(event)
 
-    def on_modified(self, event: DirModifiedEvent | FileModifiedEvent) -> None:
-        self.on_created_or_modified(event)
-
-
-class TemplateHandler(FileSystemEventHandler):
-    def __init__(self, generator: WatcherGenerator) -> None:
-        super().__init__()
-        self.generator = generator
-
+class TemplateHandler(WatcherFileSystemEventHandler):
     def on_created_or_modified(
         self,
         event: FileCreatedEvent
@@ -125,12 +132,6 @@ class TemplateHandler(FileSystemEventHandler):
         path = Path(str(event.src_path))
         template = self.generator.add_template(path)
         self.generator.templates.pop(template.name)
-
-    def on_created(self, event: DirCreatedEvent | FileCreatedEvent) -> None:
-        self.on_created_or_modified(event)
-
-    def on_modified(self, event: DirModifiedEvent | FileModifiedEvent) -> None:
-        self.on_created_or_modified(event)
 
 
 def serve(addr: str, port: int, directory: StrPath) -> None:
