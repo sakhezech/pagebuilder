@@ -14,13 +14,52 @@ from watchdog.events import (
 )
 from watchdog.observers import Observer
 
-from generate import Generator
+from generate import Generator, Page, make_template_stack
 
 type StrPath = PathLike[str] | str
 
 
+class WatcherGenerator(Generator):
+    def __init__(
+        self,
+        pages_path: Path,
+        templates_path: Path,
+        assets_path: Path,
+        dist_path: Path,
+        data_start: str = '<!-- YAML:\n',
+        data_end: str = '-->\n',
+        ext: str = '.html',
+    ) -> None:
+        super().__init__(
+            pages_path,
+            templates_path,
+            assets_path,
+            dist_path,
+            data_start,
+            data_end,
+            ext,
+        )
+
+        self.pages: dict[Path, Page] = {}
+        for page_path in self.pages_path.rglob(f'**/*{self.ext}'):
+            self.add_page(page_path)
+
+    def add_page(self, page_path: Path) -> 'Page':
+        page = Page.load(
+            page_path,
+            self.pages_path,
+            self.data_start,
+            self.data_end,
+            self.ext,
+        )
+        page.template_stack = make_template_stack(page, self.templates)
+
+        self.pages[page_path] = page
+        return page
+
+
 class PagesHandler(FileSystemEventHandler):
-    def __init__(self, generator: Generator) -> None:
+    def __init__(self, generator: WatcherGenerator) -> None:
         super().__init__()
         self.generator = generator
 
@@ -54,7 +93,7 @@ class PagesHandler(FileSystemEventHandler):
 
 
 class TemplateHandler(FileSystemEventHandler):
-    def __init__(self, generator: Generator) -> None:
+    def __init__(self, generator: WatcherGenerator) -> None:
         super().__init__()
         self.generator = generator
 
@@ -103,7 +142,7 @@ def serve(addr: str, port: int, directory: StrPath) -> None:
 if __name__ == '__main__':
     observer = Observer()
     try:
-        generator = Generator(
+        generator = WatcherGenerator(
             Path('./pages/'),
             Path('./templates/'),
             Path('./assets/'),

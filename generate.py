@@ -30,23 +30,6 @@ class Generator:
         for template_path in self.templates_path.rglob(f'**/*{self.ext}'):
             self.add_template(template_path)
 
-        self.pages: dict[Path, Page] = {}
-        for page_path in self.pages_path.rglob(f'**/*{self.ext}'):
-            self.add_page(page_path)
-
-    def add_page(self, page_path: Path) -> 'Page':
-        page = Page.load(
-            page_path,
-            self.pages_path,
-            self.data_start,
-            self.data_end,
-            self.ext,
-        )
-        page.template_stack = make_template_stack(page, self.templates)
-
-        self.pages[page_path] = page
-        return page
-
     def add_template(self, template_path: Path) -> 'Page':
         template = Page.load(
             template_path,
@@ -61,13 +44,21 @@ class Generator:
     def save_page(self, page: 'Page') -> None:
         page.save(self.templates, self.dist_path)
 
-    def save_all(self) -> None:
-        for page in self.pages.values():
+    def load_and_save_pages(self) -> None:
+        for page_path in self.pages_path.rglob(f'**/*{self.ext}'):
+            page = Page.load(
+                page_path,
+                self.pages_path,
+                self.data_start,
+                self.data_end,
+                self.ext,
+            )
+            page.template_stack = make_template_stack(page, self.templates)
             self.save_page(page)
 
     def generate(self) -> None:
         shutil.rmtree(self.dist_path, ignore_errors=True)
-        self.save_all()
+        self.load_and_save_pages()
         shutil.copytree(self.assets_path, self.dist_path / self.assets_path)
 
 
