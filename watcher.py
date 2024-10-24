@@ -3,6 +3,7 @@ import http.server
 import shutil
 from os import PathLike
 from pathlib import Path
+from typing import Self
 
 from watchdog.events import (
     DirCreatedEvent,
@@ -93,6 +94,13 @@ class WatcherGenerator(Generator):
     def stop_observing(self) -> None:
         self._observer.stop()
         self._observer.join()
+
+    def __enter__(self) -> Self:
+        self.observe()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.stop_observing()
 
 
 class WatcherFileSystemEventHandler(FileSystemEventHandler):
@@ -226,8 +234,5 @@ if __name__ == '__main__':
         Path('./assets/'),
         Path('./dist/'),
     )
-    try:
-        generator.observe()
+    with generator:
         serve('localhost', 5000, generator.dist_path)
-    finally:
-        generator.stop_observing()
