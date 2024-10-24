@@ -8,9 +8,11 @@ from watchdog.events import (
     DirCreatedEvent,
     DirDeletedEvent,
     DirModifiedEvent,
+    DirMovedEvent,
     FileCreatedEvent,
     FileDeletedEvent,
     FileModifiedEvent,
+    FileMovedEvent,
     FileSystemEventHandler,
 )
 from watchdog.observers import Observer
@@ -106,6 +108,20 @@ class WatcherFileSystemEventHandler(FileSystemEventHandler):
         | DirModifiedEvent,
     ) -> None:
         pass
+
+    def on_moved(self, event: DirMovedEvent | FileMovedEvent) -> None:
+        if not event.is_directory:
+            self.on_deleted(
+                FileDeletedEvent(event.src_path, is_synthetic=True)
+            )
+            self.on_created_or_modified(
+                FileCreatedEvent(event.dest_path, is_synthetic=True)
+            )
+        else:
+            self.on_deleted(DirDeletedEvent(event.src_path, is_synthetic=True))
+            self.on_created_or_modified(
+                DirCreatedEvent(event.dest_path, is_synthetic=True)
+            )
 
     def on_created(self, event: DirCreatedEvent | FileCreatedEvent) -> None:
         self.on_created_or_modified(event)
