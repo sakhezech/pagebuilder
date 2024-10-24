@@ -41,6 +41,7 @@ class WatcherGenerator(Generator):
         )
 
         self.pages: dict[Path, Page] = {}
+        self.template_stacks_of_pages: dict[Page, list[str]] = {}
         for page_path in self.pages_path.rglob(f'**/*{self.ext}'):
             self.add_page(page_path)
 
@@ -52,7 +53,10 @@ class WatcherGenerator(Generator):
             self.data_end,
             self.ext,
         )
-        page.template_stack = make_template_stack(page, self.templates)
+        self.template_stacks_of_pages[page] = make_template_stack(
+            page,
+            self.templates,
+        )
 
         self.pages[page_path] = page
         return page
@@ -84,6 +88,7 @@ class PagesHandler(FileSystemEventHandler):
         path = Path(str(event.src_path))
         page = self.generator.pages.pop(path)
         page.get_save_path(self.generator.dist_path).unlink()
+        del self.generator.template_stacks_of_pages[page]
 
     def on_created(self, event: DirCreatedEvent | FileCreatedEvent) -> None:
         self.on_created_or_modified(event)
@@ -110,11 +115,7 @@ class TemplateHandler(FileSystemEventHandler):
         path = Path(str(event.src_path))
         template = self.generator.add_template(path)
         for page in self.generator.pages.values():
-            if page.template_stack is None:
-                page.template_stack = make_template_stack(
-                    page, self.generator.templates
-                )
-            if template.name in page.template_stack:
+            if template.name in self.generator.template_stacks_of_pages[page]:
                 self.generator.save_page(page)
 
     def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
