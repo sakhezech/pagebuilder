@@ -58,7 +58,7 @@ class Generator:
     def generate(self) -> None:
         shutil.rmtree(self.dist_path, ignore_errors=True)
         self.load_and_save_pages()
-        shutil.copytree(self.assets_path, self.dist_path / self.assets_path)
+        shutil.copytree(self.assets_path, self.dist_path, dirs_exist_ok=True)
 
 
 class Page:
