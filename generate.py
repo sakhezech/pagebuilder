@@ -111,11 +111,11 @@ class Page:
         relative_to: Path,
         data_comment_start: str,
         data_comment_end: str,
-        EXT: str,
+        ext: str,
     ) -> Self:
         rel_path = path.relative_to(relative_to)
         raw_txt = path.read_text()
-        name = path.name.removesuffix(EXT)
+        name = path.name.removesuffix(ext)
 
         if raw_txt.startswith(data_comment_start):
             data_start = len(data_comment_start)
