@@ -6,7 +6,7 @@ import combustache
 import yaml
 
 
-class Generator:
+class PageBuilder:
     def __init__(
         self,
         pages_path: Path,
@@ -55,7 +55,7 @@ class Generator:
             )
             self.save_page(page)
 
-    def generate(self) -> None:
+    def build(self) -> None:
         shutil.rmtree(self.dist_path, ignore_errors=True)
         self.load_and_save_pages()
         shutil.copytree(self.assets_path, self.dist_path, dirs_exist_ok=True)
@@ -145,10 +145,10 @@ if __name__ == '__main__':
     DIST_PATH = Path('./dist/')
     ASSETS_PATH = Path('./assets/')
 
-    gen = Generator(
+    gen = PageBuilder(
         PAGES_PATH,
         TEMPLATE_PATH,
         ASSETS_PATH,
         DIST_PATH,
     )
-    gen.generate()
+    gen.build()

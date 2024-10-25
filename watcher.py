@@ -18,12 +18,12 @@ from watchdog.events import (
 )
 from watchdog.observers import Observer
 
-from generate import Generator, Page, make_template_stack
+from generate import Page, PageBuilder, make_template_stack
 
 type StrPath = PathLike[str] | str
 
 
-class WatcherGenerator(Generator):
+class PageBuilderWatcher(PageBuilder):
     def __init__(
         self,
         pages_path: Path,
@@ -66,7 +66,7 @@ class WatcherGenerator(Generator):
         return page
 
     def observe(self) -> None:
-        self.generate()
+        self.build()
 
         self._observer = Observer()
         pages_handler = PagesHandler(self)
@@ -104,9 +104,9 @@ class WatcherGenerator(Generator):
 
 
 class WatcherFileSystemEventHandler(FileSystemEventHandler):
-    def __init__(self, generator: WatcherGenerator) -> None:
+    def __init__(self, generator: PageBuilderWatcher) -> None:
         super().__init__()
-        self.generator = generator
+        self.builder = generator
 
     def on_created_or_modified(
         self,
@@ -150,17 +150,17 @@ class PagesHandler(WatcherFileSystemEventHandler):
             return
 
         path = Path(str(event.src_path))
-        page = self.generator.add_page(path)
-        self.generator.save_page(page)
+        page = self.builder.add_page(path)
+        self.builder.save_page(page)
 
     def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
         if event.is_directory:
             return
 
         path = Path(str(event.src_path))
-        page = self.generator.pages.pop(path)
-        page.get_save_path(self.generator.dist_path).unlink()
-        del self.generator.template_stacks_of_pages[page]
+        page = self.builder.pages.pop(path)
+        page.get_save_path(self.builder.dist_path).unlink()
+        del self.builder.template_stacks_of_pages[page]
 
 
 class TemplateHandler(WatcherFileSystemEventHandler):
@@ -175,24 +175,24 @@ class TemplateHandler(WatcherFileSystemEventHandler):
             return
 
         path = Path(str(event.src_path))
-        template = self.generator.add_template(path)
-        for page in self.generator.pages.values():
-            if template.name in self.generator.template_stacks_of_pages[page]:
-                self.generator.save_page(page)
+        template = self.builder.add_template(path)
+        for page in self.builder.pages.values():
+            if template.name in self.builder.template_stacks_of_pages[page]:
+                self.builder.save_page(page)
 
     def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
         if event.is_directory:
             return
 
         path = Path(str(event.src_path))
-        template = self.generator.add_template(path)
-        self.generator.templates.pop(template.name)
+        template = self.builder.add_template(path)
+        self.builder.templates.pop(template.name)
 
 
 class AssetHandler(WatcherFileSystemEventHandler):
     def to_real_path(self, path: Path) -> Path:
-        return self.generator.dist_path / path.relative_to(
-            self.generator.assets_path
+        return self.builder.dist_path / path.relative_to(
+            self.builder.assets_path
         )
 
     def on_created_or_modified(
@@ -228,11 +228,11 @@ def serve(addr: str, port: int, directory: StrPath) -> None:
 
 
 if __name__ == '__main__':
-    generator = WatcherGenerator(
+    builder = PageBuilderWatcher(
         Path('./pages/'),
         Path('./templates/'),
         Path('./assets/'),
         Path('./dist/'),
     )
-    with generator:
-        serve('localhost', 5000, generator.dist_path)
+    with builder:
+        serve('localhost', 5000, builder.dist_path)
