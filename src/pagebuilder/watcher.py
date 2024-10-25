@@ -18,7 +18,7 @@ from watchdog.events import (
 )
 from watchdog.observers import Observer
 
-from generate import Page, PageBuilder, make_template_stack
+from .builder import Page, PageBuilder, make_template_stack
 
 type StrPath = PathLike[str] | str
 

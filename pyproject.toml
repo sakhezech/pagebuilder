@@ -1,6 +1,24 @@
+[project]
+name = 'pagebuilder'
+version = '0.1.0'
+description = 'a static site generator i built'
+readme = 'README.md'
+license = 'MIT'
+dependencies = ['pyyaml', 'combustache', 'watchdog']
+
+[project.optional-dependencies]
+dev = ['ruff']
+
+[project.urls]
+Homepage = 'https://github.com/sakhezech/pages'
+
 [tool.ruff]
 line-length = 79
 [tool.ruff.format]
 quote-style = 'single'
 [tool.ruff.lint]
 extend-select = ['I', 'E501']
+
+[build-system]
+requires = ['hatchling']
+build-backend = 'hatchling.build'
