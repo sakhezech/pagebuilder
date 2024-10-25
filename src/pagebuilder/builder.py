@@ -137,18 +137,3 @@ def make_template_stack(page: 'Page', templates: dict[str, Any]) -> list[str]:
         dependencies.append(template_name)
         curr = templates[template_name]
     return dependencies
-
-
-if __name__ == '__main__':
-    PAGES_PATH = Path('./pages/')
-    TEMPLATE_PATH = Path('./templates/')
-    DIST_PATH = Path('./dist/')
-    ASSETS_PATH = Path('./assets/')
-
-    gen = PageBuilder(
-        PAGES_PATH,
-        TEMPLATE_PATH,
-        ASSETS_PATH,
-        DIST_PATH,
-    )
-    gen.build()

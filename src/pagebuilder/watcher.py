@@ -225,14 +225,3 @@ def serve(addr: str, port: int, directory: StrPath) -> None:
     )
     with http.server.ThreadingHTTPServer((addr, port), MyHandler) as httpd:
         httpd.serve_forever()
-
-
-if __name__ == '__main__':
-    builder = PageBuilderWatcher(
-        Path('./pages/'),
-        Path('./templates/'),
-        Path('./assets/'),
-        Path('./dist/'),
-    )
-    with builder:
-        serve('localhost', 5000, builder.dist_path)
