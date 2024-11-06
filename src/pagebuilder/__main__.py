@@ -62,8 +62,7 @@ def make_parser(func: Callable, *args, **kwargs) -> ArgumentParser:
 
 if __name__ == '__main__':
     from .__version__ import __version__
-    from .builder import PageBuilder
-    from .watcher import PageBuilderWatcher, serve
+    from .builder import PageBuilder, serve
 
     parser = make_parser(PageBuilder.__init__, prog='pagebuilder')
     parser.add_argument('-a', '--addr', default=None)
@@ -74,9 +73,10 @@ if __name__ == '__main__':
     builder_args = args.__dict__.copy()
     addr_port: str = builder_args.pop('addr')
 
+    builder = PageBuilder(**builder_args)
     if addr_port:
         addr, _, port = addr_port.partition(':')
-        with PageBuilderWatcher(**builder_args) as builder:
+        with builder:
             serve(addr, int(port), builder.dist_path)
     else:
-        PageBuilder(**builder_args).build()
+        builder.build()

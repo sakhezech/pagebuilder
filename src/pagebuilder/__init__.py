@@ -1,4 +1,3 @@
-from .builder import PageBuilder
-from .watcher import PageBuilderWatcher, serve
+from .builder import PageBuilder, serve
 
-__all__ = ['PageBuilder', 'PageBuilderWatcher', 'serve']
+__all__ = ['PageBuilder', 'serve']

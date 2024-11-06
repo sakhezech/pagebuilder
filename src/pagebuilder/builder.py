@@ -1,9 +1,17 @@
+import functools
+import http.server
 import shutil
+from os import PathLike
 from pathlib import Path
 from typing import Any, Self
 
 import combustache
 import yaml
+from watchdog.observers import Observer
+
+from .watcher import AssetHandler, PagesHandler, TemplateHandler
+
+type StrPath = PathLike[str] | str
 
 
 class PageBuilder:
@@ -30,6 +38,27 @@ class PageBuilder:
         for template_path in self.templates_path.rglob(f'**/*{self.ext}'):
             self.add_template(template_path)
 
+        self.pages: dict[Path, Page] = {}
+        self.template_stacks_of_pages: dict[Page, list[str]] = {}
+        for page_path in self.pages_path.rglob(f'**/*{self.ext}'):
+            self.add_page(page_path)
+
+    def add_page(self, page_path: Path) -> 'Page':
+        page = Page.load(
+            page_path,
+            self.pages_path,
+            self.data_start,
+            self.data_end,
+            self.ext,
+        )
+        self.template_stacks_of_pages[page] = make_template_stack(
+            page,
+            self.templates,
+        )
+
+        self.pages[page_path] = page
+        return page
+
     def add_template(self, template_path: Path) -> 'Page':
         template = Page.load(
             template_path,
@@ -44,21 +73,48 @@ class PageBuilder:
     def save_page(self, page: 'Page') -> None:
         page.save(self.templates, self.dist_path)
 
-    def load_and_save_pages(self) -> None:
-        for page_path in self.pages_path.rglob(f'**/*{self.ext}'):
-            page = Page.load(
-                page_path,
-                self.pages_path,
-                self.data_start,
-                self.data_end,
-                self.ext,
-            )
-            self.save_page(page)
-
     def build(self) -> None:
         shutil.rmtree(self.dist_path, ignore_errors=True)
-        self.load_and_save_pages()
+        for page in self.pages.values():
+            self.save_page(page)
         shutil.copytree(self.assets_path, self.dist_path, dirs_exist_ok=True)
+
+    def observe(self) -> None:
+        self.build()
+
+        self._observer = Observer()
+        pages_handler = PagesHandler(self)
+        template_handler = TemplateHandler(self)
+        asset_handler = AssetHandler(self)
+
+        self._observer.schedule(
+            pages_handler,
+            str(self.pages_path),
+            recursive=True,
+        )
+        self._observer.schedule(
+            template_handler,
+            str(self.templates_path),
+            recursive=True,
+        )
+        self._observer.schedule(
+            asset_handler,
+            str(self.assets_path),
+            recursive=True,
+        )
+
+        self._observer.start()
+
+    def stop_observing(self) -> None:
+        self._observer.stop()
+        self._observer.join()
+
+    def __enter__(self) -> Self:
+        self.observe()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.stop_observing()
 
 
 class Page:
@@ -137,3 +193,12 @@ def make_template_stack(page: 'Page', templates: dict[str, Any]) -> list[str]:
         dependencies.append(template_name)
         curr = templates[template_name]
     return dependencies
+
+
+def serve(addr: str, port: int, directory: StrPath) -> None:
+    MyHandler = functools.partial(
+        http.server.SimpleHTTPRequestHandler,
+        directory=str(directory),
+    )
+    with http.server.ThreadingHTTPServer((addr, port), MyHandler) as httpd:
+        httpd.serve_forever()

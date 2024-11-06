@@ -1,9 +1,7 @@
-import functools
-import http.server
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING
 
 from watchdog.events import (
     DirCreatedEvent,
@@ -16,95 +14,15 @@ from watchdog.events import (
     FileMovedEvent,
     FileSystemEventHandler,
 )
-from watchdog.observers import Observer
-
-from .builder import Page, PageBuilder, make_template_stack
 
 type StrPath = PathLike[str] | str
 
-
-class PageBuilderWatcher(PageBuilder):
-    def __init__(
-        self,
-        pages_path: Path,
-        templates_path: Path,
-        assets_path: Path,
-        dist_path: Path,
-        data_start: str = '<!-- YAML:\n',
-        data_end: str = '-->\n',
-        ext: str = '.html',
-    ) -> None:
-        super().__init__(
-            pages_path,
-            templates_path,
-            assets_path,
-            dist_path,
-            data_start,
-            data_end,
-            ext,
-        )
-
-        self.pages: dict[Path, Page] = {}
-        self.template_stacks_of_pages: dict[Page, list[str]] = {}
-        for page_path in self.pages_path.rglob(f'**/*{self.ext}'):
-            self.add_page(page_path)
-
-    def add_page(self, page_path: Path) -> 'Page':
-        page = Page.load(
-            page_path,
-            self.pages_path,
-            self.data_start,
-            self.data_end,
-            self.ext,
-        )
-        self.template_stacks_of_pages[page] = make_template_stack(
-            page,
-            self.templates,
-        )
-
-        self.pages[page_path] = page
-        return page
-
-    def observe(self) -> None:
-        self.build()
-
-        self._observer = Observer()
-        pages_handler = PagesHandler(self)
-        template_handler = TemplateHandler(self)
-        asset_handler = AssetHandler(self)
-
-        self._observer.schedule(
-            pages_handler,
-            str(self.pages_path),
-            recursive=True,
-        )
-        self._observer.schedule(
-            template_handler,
-            str(self.templates_path),
-            recursive=True,
-        )
-        self._observer.schedule(
-            asset_handler,
-            str(self.assets_path),
-            recursive=True,
-        )
-
-        self._observer.start()
-
-    def stop_observing(self) -> None:
-        self._observer.stop()
-        self._observer.join()
-
-    def __enter__(self) -> Self:
-        self.observe()
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
-        self.stop_observing()
+if TYPE_CHECKING:
+    from .builder import PageBuilder
 
 
 class WatcherFileSystemEventHandler(FileSystemEventHandler):
-    def __init__(self, generator: PageBuilderWatcher) -> None:
+    def __init__(self, generator: 'PageBuilder') -> None:
         super().__init__()
         self.builder = generator
 
@@ -216,12 +134,3 @@ class AssetHandler(WatcherFileSystemEventHandler):
 
         path = Path(str(event.src_path))
         self.to_real_path(path).unlink()
-
-
-def serve(addr: str, port: int, directory: StrPath) -> None:
-    MyHandler = functools.partial(
-        http.server.SimpleHTTPRequestHandler,
-        directory=str(directory),
-    )
-    with http.server.ThreadingHTTPServer((addr, port), MyHandler) as httpd:
-        httpd.serve_forever()
