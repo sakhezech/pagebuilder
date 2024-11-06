@@ -1,6 +1,7 @@
 import functools
 import http.server
 import shutil
+from collections.abc import Callable
 from os import PathLike
 from pathlib import Path
 from typing import Any, Self
@@ -21,6 +22,7 @@ class PageBuilder:
         templates_path: Path,
         assets_path: Path,
         dist_path: Path,
+        render_func: Callable[[str, dict[str, Any]], str] | None = None,
         data_start: str = '<!-- YAML:\n',
         data_end: str = '-->\n',
         ext: str = '.html',
@@ -33,6 +35,7 @@ class PageBuilder:
         self.ext = ext
         self.data_start = data_start
         self.data_end = data_end
+        self.render_func = render_func or combustache.render
 
         self.templates: dict[str, Page] = {}
         for template_path in self.templates_path.rglob(f'**/*{self.ext}'):
@@ -115,12 +118,12 @@ class Page:
     def render(self) -> str:
         templates = self.builder.templates
         merged_data = self.data
-        merged_data['slot'] = combustache.render(self.content, self.data)
+        merged_data['slot'] = self.builder.render_func(self.content, self.data)
 
         for template_name in self.template_stack:
             template = templates[template_name]
             merged_data = template.data | merged_data
-            merged_data['slot'] = combustache.render(
+            merged_data['slot'] = self.builder.render_func(
                 template.content, merged_data
             )
         return merged_data['slot']
