@@ -2,7 +2,8 @@ name: Deploy Pages
 
 on:
   push:
-    branches: ["main"]
+    paths:
+      - "data/*"
   workflow_dispatch:
 
 permissions:
