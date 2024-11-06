@@ -77,7 +77,7 @@ class PagesHandler(WatcherFileSystemEventHandler):
 
         path = Path(str(event.src_path))
         page = self.builder.pages.pop(path)
-        page.get_save_path().unlink()
+        page.save_path.unlink()
 
 
 class TemplateHandler(WatcherFileSystemEventHandler):

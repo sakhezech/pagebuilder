@@ -106,10 +106,11 @@ class Page:
     ) -> None:
         self.content = content
         self.data = data
-        self.path = path
         self.builder = builder
-        self.name = self.path.name.removesuffix(self.builder.ext)
+        self.relative_path = path
+        self.name = self.relative_path.name.removesuffix(self.builder.ext)
         self.template_stack = self.make_template_stack()
+        self.save_path = self.get_save_path()
 
     def make_template_stack(self) -> list[str]:
         dependencies: list[str] = []
@@ -137,17 +138,15 @@ class Page:
     def get_save_path(self) -> Path:
         dist_path = self.builder.dist_path
         if self.name == 'index':
-            output_dir_path = dist_path / self.path.parent
+            output_dir_path = dist_path / self.relative_path.parent
         else:
-            output_dir_path = dist_path / self.path.parent / self.name
+            output_dir_path = dist_path / self.relative_path.parent / self.name
 
         return output_dir_path / 'index.html'
 
     def save(self) -> None:
-        save_path = self.get_save_path()
-
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        save_path.write_text(self.render())
+        self.save_path.parent.mkdir(parents=True, exist_ok=True)
+        self.save_path.write_text(self.render())
 
     @classmethod
     def load(
