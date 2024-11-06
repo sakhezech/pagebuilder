@@ -44,13 +44,7 @@ class PageBuilder:
             self.add_page(page_path)
 
     def add_page(self, page_path: Path) -> 'Page':
-        page = Page.load(
-            page_path,
-            self.pages_path,
-            self.data_start,
-            self.data_end,
-            self.ext,
-        )
+        page = Page.load(page_path, self.pages_path, self)
         self.template_stacks_of_pages[page] = make_template_stack(
             page,
             self.templates,
@@ -60,23 +54,14 @@ class PageBuilder:
         return page
 
     def add_template(self, template_path: Path) -> 'Page':
-        template = Page.load(
-            template_path,
-            self.templates_path,
-            self.data_start,
-            self.data_end,
-            self.ext,
-        )
+        template = Page.load(template_path, self.templates_path, self)
         self.templates[template.name] = template
         return template
-
-    def save_page(self, page: 'Page') -> None:
-        page.save(self.templates, self.dist_path)
 
     def build(self) -> None:
         shutil.rmtree(self.dist_path, ignore_errors=True)
         for page in self.pages.values():
-            self.save_page(page)
+            page.save()
         shutil.copytree(self.assets_path, self.dist_path, dirs_exist_ok=True)
 
     def observe(self) -> None:
@@ -123,18 +108,20 @@ class Page:
         content: str,
         data: dict[str, Any],
         path: Path,
-        name: str,
+        builder: PageBuilder,
     ) -> None:
         self.content = content
         self.data = data
         self.path = path
-        self.name = name
+        self.builder = builder
+        self.name = self.path.name.removesuffix(self.builder.ext)
 
-    def render(self, templates: dict[str, Self]) -> str:
+    def render(self) -> str:
+        templates = self.builder.templates
         merged_data = self.data
         merged_data['slot'] = combustache.render(self.content, self.data)
 
-        template_stack = make_template_stack(self, templates)
+        template_stack = self.builder.template_stacks_of_pages[self]
         for template_name in template_stack:
             template = templates[template_name]
             merged_data = template.data | merged_data
@@ -143,7 +130,8 @@ class Page:
             )
         return merged_data['slot']
 
-    def get_save_path(self, dist_path: Path) -> Path:
+    def get_save_path(self) -> Path:
+        dist_path = self.builder.dist_path
         if self.name == 'index':
             output_dir_path = dist_path / self.path.parent
         else:
@@ -151,29 +139,26 @@ class Page:
 
         return output_dir_path / 'index.html'
 
-    def save(self, templates: dict[str, Self], dist_path: Path) -> None:
-        save_path = self.get_save_path(dist_path)
+    def save(self) -> None:
+        save_path = self.get_save_path()
 
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        save_path.write_text(self.render(templates))
+        save_path.write_text(self.render())
 
     @classmethod
     def load(
         cls,
         path: Path,
         relative_to: Path,
-        data_comment_start: str,
-        data_comment_end: str,
-        ext: str,
+        builder: PageBuilder,
     ) -> Self:
         rel_path = path.relative_to(relative_to)
         raw_txt = path.read_text()
-        name = path.name.removesuffix(ext)
 
-        if raw_txt.startswith(data_comment_start):
-            data_start = len(data_comment_start)
-            data_end = raw_txt.find(data_comment_end)
-            txt_start = data_end + len(data_comment_end)
+        if raw_txt.startswith(builder.data_start):
+            data_start = len(builder.data_start)
+            data_end = raw_txt.find(builder.data_end)
+            txt_start = data_end + len(builder.data_end)
 
             data_txt = raw_txt[data_start:data_end]
             data = yaml.load(data_txt, yaml.Loader)
@@ -182,7 +167,7 @@ class Page:
             data = {}
             txt = raw_txt
 
-        return cls(txt, data, rel_path, name)
+        return cls(txt, data, rel_path, builder)
 
 
 def make_template_stack(page: 'Page', templates: dict[str, Any]) -> list[str]:
