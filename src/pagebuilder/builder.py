@@ -39,17 +39,11 @@ class PageBuilder:
             self.add_template(template_path)
 
         self.pages: dict[Path, Page] = {}
-        self.template_stacks_of_pages: dict[Page, list[str]] = {}
         for page_path in self.pages_path.rglob(f'**/*{self.ext}'):
             self.add_page(page_path)
 
     def add_page(self, page_path: Path) -> 'Page':
         page = Page.load(page_path, self.pages_path, self)
-        self.template_stacks_of_pages[page] = make_template_stack(
-            page,
-            self.templates,
-        )
-
         self.pages[page_path] = page
         return page
 
@@ -115,14 +109,24 @@ class Page:
         self.path = path
         self.builder = builder
         self.name = self.path.name.removesuffix(self.builder.ext)
+        self.template_stack = self.make_template_stack()
+
+    def make_template_stack(self) -> list[str]:
+        dependencies: list[str] = []
+        templates = self.builder.templates
+        curr = self
+        while curr.data.get('template', None):
+            template_name = curr.data['template']
+            dependencies.append(template_name)
+            curr = templates[template_name]
+        return dependencies
 
     def render(self) -> str:
         templates = self.builder.templates
         merged_data = self.data
         merged_data['slot'] = combustache.render(self.content, self.data)
 
-        template_stack = self.builder.template_stacks_of_pages[self]
-        for template_name in template_stack:
+        for template_name in self.template_stack:
             template = templates[template_name]
             merged_data = template.data | merged_data
             merged_data['slot'] = combustache.render(
@@ -168,16 +172,6 @@ class Page:
             txt = raw_txt
 
         return cls(txt, data, rel_path, builder)
-
-
-def make_template_stack(page: 'Page', templates: dict[str, Any]) -> list[str]:
-    dependencies: list[str] = []
-    curr = page
-    while curr.data.get('template', None):
-        template_name = curr.data['template']
-        dependencies.append(template_name)
-        curr = templates[template_name]
-    return dependencies
 
 
 def serve(addr: str, port: int, directory: StrPath) -> None:

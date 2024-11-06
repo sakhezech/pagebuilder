@@ -78,7 +78,6 @@ class PagesHandler(WatcherFileSystemEventHandler):
         path = Path(str(event.src_path))
         page = self.builder.pages.pop(path)
         page.get_save_path().unlink()
-        del self.builder.template_stacks_of_pages[page]
 
 
 class TemplateHandler(WatcherFileSystemEventHandler):
@@ -95,7 +94,7 @@ class TemplateHandler(WatcherFileSystemEventHandler):
         path = Path(str(event.src_path))
         template = self.builder.add_template(path)
         for page in self.builder.pages.values():
-            if template.name in self.builder.template_stacks_of_pages[page]:
+            if template.name in page.template_stack:
                 page.save()
 
     def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
