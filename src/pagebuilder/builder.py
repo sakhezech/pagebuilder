@@ -112,16 +112,6 @@ class Page:
         self.template_stack = self.make_template_stack()
         self.save_path = self.get_save_path()
 
-    def make_template_stack(self) -> list[str]:
-        dependencies: list[str] = []
-        templates = self.builder.templates
-        curr = self
-        while curr.data.get('template', None):
-            template_name = curr.data['template']
-            dependencies.append(template_name)
-            curr = templates[template_name]
-        return dependencies
-
     def render(self) -> str:
         templates = self.builder.templates
         merged_data = self.data
@@ -134,15 +124,6 @@ class Page:
                 template.content, merged_data
             )
         return merged_data['slot']
-
-    def get_save_path(self) -> Path:
-        dist_path = self.builder.dist_path
-        if self.name == 'index':
-            output_dir_path = dist_path / self.relative_path.parent
-        else:
-            output_dir_path = dist_path / self.relative_path.parent / self.name
-
-        return output_dir_path / 'index.html'
 
     def save(self) -> None:
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -171,6 +152,25 @@ class Page:
             txt = raw_txt
 
         return cls(txt, data, rel_path, builder)
+
+    def make_template_stack(self) -> list[str]:
+        dependencies: list[str] = []
+        templates = self.builder.templates
+        curr = self
+        while curr.data.get('template', None):
+            template_name = curr.data['template']
+            dependencies.append(template_name)
+            curr = templates[template_name]
+        return dependencies
+
+    def get_save_path(self) -> Path:
+        dist_path = self.builder.dist_path
+        if self.name == 'index':
+            output_dir_path = dist_path / self.relative_path.parent
+        else:
+            output_dir_path = dist_path / self.relative_path.parent / self.name
+
+        return output_dir_path / 'index.html'
 
 
 def serve(addr: str, port: int, directory: StrPath) -> None:
