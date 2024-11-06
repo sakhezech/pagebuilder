@@ -207,7 +207,7 @@ class AssetHandler(WatcherFileSystemEventHandler):
 
         path = Path(str(event.src_path))
         real_path = self.to_real_path(path)
-        real_path.parent.mkdir(exist_ok=True)
+        real_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, real_path)
 
     def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
