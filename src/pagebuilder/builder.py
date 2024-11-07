@@ -22,6 +22,7 @@ class PageBuilder:
         templates_path: Path,
         assets_path: Path,
         dist_path: Path,
+        *,
         render_func: Callable[[str, dict[str, Any]], str] | None = None,
         shared_data: dict[str, Any] | None = None,
         data_start: str = '<!-- YAML:\n',
