@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 
 from .__version__ import __version__
@@ -62,7 +62,8 @@ def cli(argv: Sequence[str] | None = None) -> None:
         '--builder',
         action='append',
         help="""
-        builder instance to run, in the format '<module>:<instance>'
+        builder instance or iteralbe of builders to run,
+        in the format '<module>:<instance_or_iterable>'
         (can be used multiple times)
         """,
     )
@@ -74,9 +75,17 @@ def cli(argv: Sequence[str] | None = None) -> None:
             import_path, _, builder_name = builder_path.partition(':')
             module = __import__(import_path)
             builder = getattr(module, builder_name, None)
-            if not isinstance(builder, PageBuilder):
-                raise ValueError(f'not a builder: {builder}')
-            builders.append(builder)
+            if isinstance(builder, PageBuilder):
+                builders.append(builder)
+            elif isinstance(builder, Iterable):
+                for b in builder:
+                    if not isinstance(b, PageBuilder):
+                        raise ValueError(f'not a builder: {b}')
+                builders.extend(builder)
+            else:
+                raise ValueError(
+                    f'not a builder or an iterable of builders: {builder}'
+                )
     else:
         if not 4 <= len(args.args) <= 7:
             raise ValueError(
