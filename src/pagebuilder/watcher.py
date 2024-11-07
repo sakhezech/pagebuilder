@@ -102,8 +102,8 @@ class TemplateHandler(WatcherFileSystemEventHandler):
             return
 
         path = Path(str(event.src_path))
-        template = self.builder.add_template(path)
-        self.builder.templates.pop(template.name)
+        name = path.name.removesuffix(self.builder.ext)
+        del self.builder.templates[name]
 
 
 class AssetHandler(WatcherFileSystemEventHandler):
