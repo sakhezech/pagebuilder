@@ -23,11 +23,11 @@ class PageBuilder:
         assets_path: Path,
         dist_path: Path,
         *,
-        render_func: Callable[[str, dict[str, Any]], str] | None = None,
-        shared_data: dict[str, Any] | None = None,
+        ext: str = '.html',
         data_start: str = '<!-- YAML:\n',
         data_end: str = '-->\n',
-        ext: str = '.html',
+        shared_data: dict[str, Any] | None = None,
+        render_func: Callable[[str, dict[str, Any]], str] | None = None,
     ) -> None:
         self.pages_path = pages_path
         self.templates_path = templates_path
@@ -37,8 +37,8 @@ class PageBuilder:
         self.ext = ext
         self.data_start = data_start
         self.data_end = data_end
-        self.render_func = render_func or combustache.render
         self.shared_data = shared_data or {}
+        self.render_func = render_func or combustache.render
 
         self.templates: dict[str, Page] = {}
         for template_path in self.templates_path.rglob(f'**/*{self.ext}'):
