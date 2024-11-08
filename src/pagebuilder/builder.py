@@ -24,8 +24,8 @@ class PageBuilder:
         dist_path: Path,
         *,
         ext: str = '.html',
-        data_start: str = '<!-- YAML:\n',
-        data_end: str = '-->\n',
+        data_start: str = '---\n',
+        data_end: str = '---\n',
         shared_data: dict[str, Any] | None = None,
         render_func: Callable[[str, dict[str, Any]], str] | None = None,
     ) -> None:

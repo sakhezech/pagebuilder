@@ -52,8 +52,8 @@ def cli(argv: Sequence[str] | None = None) -> None:
         assets_path,
         dist_path,
         extension (defaults to '.html'),
-        data_start (defaults to '<!-- YAML:\\n'),
-        data_end (defaults to '-->\\n'))
+        data_start (defaults to '---\\n'),
+        data_end (defaults to '---\\n'))
         """,
     )
 
