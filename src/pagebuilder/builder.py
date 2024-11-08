@@ -149,7 +149,7 @@ class Page:
 
         if raw_txt.startswith(builder.data_start):
             data_start = len(builder.data_start)
-            data_end = raw_txt.find(builder.data_end)
+            data_end = raw_txt.find(builder.data_end, data_start)
             txt_start = data_end + len(builder.data_end)
 
             data_txt = raw_txt[data_start:data_end]
