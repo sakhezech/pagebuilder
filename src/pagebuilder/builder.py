@@ -18,10 +18,10 @@ type StrPath = PathLike[str] | str
 class PageBuilder:
     def __init__(
         self,
-        pages_path: Path,
-        templates_path: Path,
-        assets_path: Path,
-        dist_path: Path,
+        pages_path: StrPath,
+        templates_path: StrPath,
+        assets_path: StrPath,
+        dist_path: StrPath,
         *,
         ext: str = '.html',
         data_start: str = '---\n',
@@ -29,10 +29,10 @@ class PageBuilder:
         shared_data: dict[str, Any] | None = None,
         render_func: Callable[[str, dict[str, Any]], str] | None = None,
     ) -> None:
-        self.pages_path = pages_path
-        self.templates_path = templates_path
-        self.assets_path = assets_path
-        self.dist_path = dist_path
+        self.pages_path = Path(pages_path)
+        self.templates_path = Path(templates_path)
+        self.assets_path = Path(assets_path)
+        self.dist_path = Path(dist_path)
 
         self.ext = ext
         self.data_start = data_start
