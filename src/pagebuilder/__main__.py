@@ -47,10 +47,10 @@ def cli(argv: Sequence[str] | None = None) -> None:
         nargs='*',
         help="""
         list of arguments for a builder in order 
-        (pages_path,
+        (dist_path,
+        pages_path,
         templates_path,
-        assets_path,
-        dist_path,
+        assets_path (defaults to None),
         extension (defaults to '.html'),
         data_start (defaults to '---\\n'),
         data_end (defaults to '---\\n'))
@@ -87,19 +87,29 @@ def cli(argv: Sequence[str] | None = None) -> None:
                     f'not a builder or an iterable of builders: {builder}'
                 )
     else:
-        if not 4 <= len(args.args) <= 7:
+        if not 3 <= len(args.args) <= 7:
             raise ValueError(
                 'number of arguments should be between '
-                f'4 and 7: {len(args.args)}'
+                f'3 and 7: {len(args.args)}'
             )
-        paths = [Path(p) for p in args.args[:4]]
-        kwargs = {
-            key: val
-            for key, val in zip(
-                ('ext', 'data_start', 'data_end'), args.args[4:]
+        kwargs = dict(
+            zip(
+                (
+                    'dist_path',
+                    'pages_path',
+                    'templates_path',
+                    'assets_path',
+                    'ext',
+                    'data_start',
+                    'data_end',
+                ),
+                args.args,
             )
-        }
-        builder = PageBuilder(*paths, **kwargs)
+        )
+        if 'assets_path' in kwargs and kwargs['assets_path'].lower() == 'none':
+            kwargs['assets_path'] = None
+
+        builder = PageBuilder(**kwargs)
         builders.append(builder)
 
     if args.watch:

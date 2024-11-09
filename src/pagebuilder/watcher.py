@@ -108,6 +108,11 @@ class TemplateHandler(WatcherFileSystemEventHandler):
 
 class AssetHandler(WatcherFileSystemEventHandler):
     def to_real_path(self, path: Path) -> Path:
+        if not self.builder.assets_path:
+            raise ValueError(
+                'an AssetHandler was created '
+                'and scheduled without assets_path'
+            )
         return self.builder.dist_path / path.relative_to(
             self.builder.assets_path
         )

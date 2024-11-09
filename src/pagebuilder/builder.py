@@ -20,9 +20,9 @@ class PageBuilder:
         self,
         pages_path: StrPath,
         templates_path: StrPath,
-        assets_path: StrPath,
-        dist_path: StrPath,
+        assets_path: StrPath | None = None,
         *,
+        dist_path: StrPath,
         ext: str = '.html',
         data_start: str = '---\n',
         data_end: str = '---\n',
@@ -31,7 +31,7 @@ class PageBuilder:
     ) -> None:
         self.pages_path = Path(pages_path)
         self.templates_path = Path(templates_path)
-        self.assets_path = Path(assets_path)
+        self.assets_path = Path(assets_path) if assets_path else None
         self.dist_path = Path(dist_path)
 
         self.ext = ext
@@ -62,31 +62,32 @@ class PageBuilder:
         shutil.rmtree(self.dist_path, ignore_errors=True)
         for page in self.pages.values():
             page.save()
-        shutil.copytree(self.assets_path, self.dist_path, dirs_exist_ok=True)
+        if self.assets_path:
+            shutil.copytree(
+                self.assets_path, self.dist_path, dirs_exist_ok=True
+            )
 
     def observe(self) -> None:
         self.build()
 
         self._observer = Observer()
-        pages_handler = PagesHandler(self)
-        template_handler = TemplateHandler(self)
-        asset_handler = AssetHandler(self)
 
         self._observer.schedule(
-            pages_handler,
+            PagesHandler(self),
             str(self.pages_path),
             recursive=True,
         )
         self._observer.schedule(
-            template_handler,
+            TemplateHandler(self),
             str(self.templates_path),
             recursive=True,
         )
-        self._observer.schedule(
-            asset_handler,
-            str(self.assets_path),
-            recursive=True,
-        )
+        if self.assets_path:
+            self._observer.schedule(
+                AssetHandler(self),
+                str(self.assets_path),
+                recursive=True,
+            )
 
         self._observer.start()
 
