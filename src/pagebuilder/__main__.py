@@ -1,3 +1,4 @@
+import logging
 from argparse import ArgumentParser
 from collections.abc import Iterable, Sequence
 from pathlib import Path
@@ -17,6 +18,25 @@ def cli(argv: Sequence[str] | None = None) -> None:
         '--version',
         action='version',
         version=__version__,
+    )
+
+    verbose_group = parser.add_mutually_exclusive_group()
+
+    verbose_group.add_argument(
+        '--logging',
+        metavar='LEVEL',
+        default='INFO',
+        dest='logging',
+        choices=logging.getLevelNamesMapping().keys(),
+        help='logging level (defaults to INFO)',
+    )
+
+    verbose_group.add_argument(
+        '--quiet',
+        const='NOTSET',
+        action='store_const',
+        dest='logging',
+        help='disable logging',
     )
 
     parser.add_argument(
@@ -69,6 +89,13 @@ def cli(argv: Sequence[str] | None = None) -> None:
     )
 
     args = parser.parse_args(argv)
+
+    # TODO: temporary logging config, change later
+    logging.basicConfig(
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    )
+    logging.getLogger('pagebuilder').setLevel(args.logging)
+
     builders: list[PageBuilder] = []
     if args.builder:
         for builder_path in args.builder:
