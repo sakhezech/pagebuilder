@@ -186,10 +186,15 @@ class Page:
         return output_dir_path / 'index.html'
 
 
+class LoggingHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, format: str, *args: Any) -> None:
+        message = (format % args).translate(self._control_char_table)  # pyright: ignore[reportAttributeAccessIssue]
+        logger.debug(f'HTTP SERVER: {message}')
+
+
 def serve(addr: str, port: int, directory: StrPath) -> None:
     MyHandler = functools.partial(
-        http.server.SimpleHTTPRequestHandler,
-        directory=str(directory),
+        LoggingHTTPRequestHandler, directory=str(directory)
     )
     with http.server.ThreadingHTTPServer((addr, port), MyHandler) as httpd:
         httpd.serve_forever()
