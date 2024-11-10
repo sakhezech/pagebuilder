@@ -1,3 +1,4 @@
+import importlib
 import logging
 from argparse import ArgumentParser
 from collections.abc import Iterable, Sequence
@@ -100,7 +101,7 @@ def cli(argv: Sequence[str] | None = None) -> None:
     if args.builder:
         for builder_path in args.builder:
             import_path, _, builder_name = builder_path.partition(':')
-            module = __import__(import_path)
+            module = importlib.import_module(import_path)
             builder = getattr(module, builder_name, None)
             if isinstance(builder, PageBuilder):
                 builders.append(builder)
