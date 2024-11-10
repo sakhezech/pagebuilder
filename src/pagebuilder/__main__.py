@@ -39,7 +39,7 @@ def cli(argv: Sequence[str] | None = None) -> None:
         """,
     )
 
-    builder_select_group = parser.add_mutually_exclusive_group()
+    builder_select_group = parser.add_mutually_exclusive_group(required=True)
 
     builder_select_group.add_argument(
         '--args',
