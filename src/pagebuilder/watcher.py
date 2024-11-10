@@ -72,9 +72,12 @@ class PagesHandler(WatcherFileSystemEventHandler):
             return
 
         path = Path(str(event.src_path))
-        page = self.builder.add_page(path)
         logger.info(f'page changed: {path}')
-        page.save()
+        try:
+            page = self.builder.add_page(path)
+            page.save()
+        except KeyError as err:
+            logger.error(err.args[0])
 
     def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
         if event.is_directory:
