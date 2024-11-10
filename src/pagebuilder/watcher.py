@@ -1,3 +1,4 @@
+import logging
 import shutil
 from os import PathLike
 from pathlib import Path
@@ -19,6 +20,9 @@ type StrPath = PathLike[str] | str
 
 if TYPE_CHECKING:
     from .builder import PageBuilder
+
+
+logger = logging.getLogger('pagebuilder')
 
 
 class WatcherFileSystemEventHandler(FileSystemEventHandler):
@@ -69,6 +73,7 @@ class PagesHandler(WatcherFileSystemEventHandler):
 
         path = Path(str(event.src_path))
         page = self.builder.add_page(path)
+        logger.info(f'page changed: {path}')
         page.save()
 
     def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
@@ -78,6 +83,7 @@ class PagesHandler(WatcherFileSystemEventHandler):
         path = Path(str(event.src_path))
         page = self.builder.pages.pop(path)
         page.save_path.unlink()
+        logger.info(f'page deleted: {path}')
 
 
 class TemplateHandler(WatcherFileSystemEventHandler):
@@ -93,6 +99,7 @@ class TemplateHandler(WatcherFileSystemEventHandler):
 
         path = Path(str(event.src_path))
         template = self.builder.add_template(path)
+        logger.info(f'template changed: {path}')
         for page in self.builder.pages.values():
             if template.name in page.template_stack:
                 page.save()
@@ -104,6 +111,7 @@ class TemplateHandler(WatcherFileSystemEventHandler):
         path = Path(str(event.src_path))
         name = path.name.removesuffix(self.builder.ext)
         del self.builder.templates[name]
+        logger.info(f'template deleted: {path}')
 
 
 class AssetHandler(WatcherFileSystemEventHandler):
@@ -131,6 +139,7 @@ class AssetHandler(WatcherFileSystemEventHandler):
         real_path = self.to_real_path(path)
         real_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, real_path)
+        logger.info(f'asset copied: {path}')
 
     def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
         if event.is_directory:
@@ -138,3 +147,4 @@ class AssetHandler(WatcherFileSystemEventHandler):
 
         path = Path(str(event.src_path))
         self.to_real_path(path).unlink()
+        logger.info(f'asset deleted: {path}')

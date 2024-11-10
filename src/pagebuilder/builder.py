@@ -1,5 +1,6 @@
 import functools
 import http.server
+import logging
 import shutil
 from collections.abc import Callable
 from os import PathLike
@@ -13,6 +14,8 @@ from watchdog.observers import Observer
 from .watcher import AssetHandler, PagesHandler, TemplateHandler
 
 type StrPath = PathLike[str] | str
+
+logger = logging.getLogger('pagebuilder')
 
 
 class PageBuilder:
@@ -137,6 +140,7 @@ class Page:
     def save(self) -> None:
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
         self.save_path.write_text(self.render())
+        logger.info(f'page saved: {self.save_path}')
 
     @classmethod
     def load(
