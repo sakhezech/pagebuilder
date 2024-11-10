@@ -119,23 +119,35 @@ class Page:
         self.builder = builder
         self.relative_path = path
         self.name = self.relative_path.name.removesuffix(self.builder.ext)
-        self.template_stack = self.make_template_stack()
-        self.save_path = self.get_save_path()
+        self.template_stack: list[str] = []
+
+        curr = self
+        while curr.data.get('template', None):
+            template_name = curr.data['template']
+            if template_name not in self.builder.templates:
+                raise KeyError(f"template doesn't exist: {template_name}")
+            self.template_stack.append(template_name)
+            self.data = curr.data | self.data
+            curr = self.builder.templates[template_name]
+
+        output_dir_path = self.builder.dist_path / self.relative_path.parent
+        if self.name != 'index':
+            output_dir_path /= self.name
+        self.save_path = output_dir_path / 'index.html'
 
     def render(self) -> str:
-        templates = self.builder.templates
-        merged_data = self.builder.shared_data | self.data
-        merged_data['slot'] = self.builder.render_func(
-            self.content, merged_data
-        )
+        # NOTE: we merge the builder shared data here so we can freely
+        # modify it whenever we please by hooks or any other means
+        data = self.builder.shared_data | self.data
+        data['slot'] = self.builder.render_func(self.content, data)
 
         for template_name in self.template_stack:
-            template = templates[template_name]
-            merged_data = template.data | merged_data
-            merged_data['slot'] = self.builder.render_func(
-                template.content, merged_data
-            )
-        return merged_data['slot']
+            if template_name not in self.builder.templates:
+                raise KeyError(f"template doesn't exist: {template_name}")
+            template = self.builder.templates[template_name]
+            data = template.data | data
+            data['slot'] = self.builder.render_func(template.content, data)
+        return data['slot']
 
     def save(self) -> None:
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -165,25 +177,6 @@ class Page:
             txt = raw_txt
 
         return cls(txt, data, rel_path, builder)
-
-    def make_template_stack(self) -> list[str]:
-        dependencies: list[str] = []
-        templates = self.builder.templates
-        curr = self
-        while curr.data.get('template', None):
-            template_name = curr.data['template']
-            dependencies.append(template_name)
-            curr = templates[template_name]
-        return dependencies
-
-    def get_save_path(self) -> Path:
-        dist_path = self.builder.dist_path
-        if self.name == 'index':
-            output_dir_path = dist_path / self.relative_path.parent
-        else:
-            output_dir_path = dist_path / self.relative_path.parent / self.name
-
-        return output_dir_path / 'index.html'
 
 
 class LoggingHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
