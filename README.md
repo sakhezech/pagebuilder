@@ -4,13 +4,11 @@
 
 ## How does it work?
 
-You can check out the [site](/data) in this repo as an example.
+`pagebuilder` uses `mustache` for rendering by default.
 
-`pagebuilder` uses `mustache` for rendering.
+Pages and templates define data in the frontmatter format.
 
-Pages and templates define data in the beginning of their files
-between `<!-- YAML:\n` and `-->\n`.
-(`template` and `slot` are special)
+`template` and `slot` keys are special.
 
 ### Pages
 
@@ -18,11 +16,12 @@ Pages represent the contents of a page and are put into templates.
 Templates are referenced by their name.
 
 ```html
-<!-- YAML:
+---
 title: Page Title
 theme: light
 template: main_template
--->
+---
+
 <p>hello world</p>
 ```
 
@@ -32,9 +31,10 @@ Contents of the page will be put into the `{{{slot}}}` tag.
 Can be nested.
 
 ```html
-<!-- YAML:
+---
 theme: dark
--->
+---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -58,94 +58,53 @@ Assets are simply copied over unchanged.
 
 ## How to run?
 
+### From the CLI
+
+You can run `pagebuilder` from the CLI in two ways:
+
+by passing in the arguments like this:
+
+```bash
+# add --watch for watcher mode
+python -m pagebuilder --args ./.dist/ ./pages/ ./templates/ ./assets/
+```
+
+or by "importing" a builder from a module
+
+```bash
+# add --watch for watcher mode
+python -m pagebuilder -b hello_world:my_builder
+```
+
+```py
+# filename: hello_world.py
+from pagebuilder import PageBuilder
+
+my_builder = PageBuilder(
+    './pages/',
+    './templates/',
+    './assets/',
+    dist_path='./.dist/',
+)
+```
+
 ### From code
 
 ```py
 #!/usr/bin/env python3
-from pathlib import Path
+from pagebuilder import PageBuilder, serve
 
-from pagebuilder import PageBuilderWatcher, serve
-
-builder = PageBuilderWatcher(
-    Path('./data/pages/'),
-    Path('./data/templates/'),
-    Path('./data/assets/'),
-    Path('./.dist/'),
+builder = PageBuilder(
+    './pages/',
+    './templates/',
+    './assets/',
+    dist_path='./.dist/',
 )
-with builder:
+# builder.build() for build only
+with builder:  # watcher mode
     serve('localhost', 5000, builder.dist_path)
-```
-
-### From the CLI
-
-```bash
-# build
-python -m pagebuilder ./data/pages/ ./data/templates ./data/assets ./dist
-# watcher mode
-python -m pagebuilder -a localhost:5000 ./data/pages/ ./data/templates ./data/assets ./dist
-```
-
-## Why not use `mustache`'s inheritance?
-
-The syntax is quite clunky and it messes up HTML highlighting.
-Also having data parsed opens the door to programmatic use.
-
-Compare these examples.
-
-```mustache
-{{<main_template}}
-{{$title}}My Title{{/title}}
-{{$theme}}gruvbox{{/theme}}
-{{$content}}
-<div>
-  List of fruits:
-  <ul>
-    <li>Bad Apple</li>
-    <li>Fresh Apricot</li>
-    <li>Sour Lemon</li>
-    <li>Sweet Orange</li>
-  </ul>
-</div>
-{{/content}}
-{{/main_template}}
-```
-
-```html
-<!-- YAML:
-title: My Title
-theme: gruvbox
-template: main_template
--->
-<div>
-  List of fruits:
-  <ul>
-    <li>Bad Apple</li>
-    <li>Fresh Apricot</li>
-    <li>Sour Lemon</li>
-    <li>Sweet Orange</li>
-  </ul>
-</div>
-```
-
-```html
-<!-- YAML:
-title: My Title
-theme: gruvbox
-template: main_template
-fruits: [Bad Apple, Fresh Apricot, Sour Lemon, Sweet Orange]
--->
-<div>
-  List of fruits:
-  <ul>
-    {{#fruits}}
-    <li>{{.}}</li>
-    {{/fruits}}
-  </ul>
-</div>
 ```
 
 ## Plans
 
 - Hook system
-- Plugin system
-- "Bring your own" rendering function
