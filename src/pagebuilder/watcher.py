@@ -76,7 +76,11 @@ class PagesHandler(WatcherFileSystemEventHandler):
         try:
             page = self.builder.add_page(path)
             page.save()
-        except KeyError as err:
+        # NOTE: we have to except everything here
+        # we have no idea what exceptions can the custom functions throw
+        # for example an incomplete markup can throw an exception while parsing
+        # or something along those lines
+        except Exception as err:
             logger.error(err.args[0])
 
     def on_deleted(self, event: DirDeletedEvent | FileDeletedEvent) -> None:
