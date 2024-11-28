@@ -122,12 +122,14 @@ class Page:
         self.template_stack: list[str] = []
 
         curr = self
-        while curr.data.get('template', None):
-            template_name = curr.data['template']
+        while True:
+            self.data = curr.data | self.data
+            template_name = curr.data.get('template', None)
+            if not template_name:
+                break
             if template_name not in self.builder.templates:
                 raise KeyError(f"template doesn't exist: {template_name}")
             self.template_stack.append(template_name)
-            self.data = curr.data | self.data
             curr = self.builder.templates[template_name]
 
         output_dir_path = self.builder.dist_path / self.relative_path.parent
