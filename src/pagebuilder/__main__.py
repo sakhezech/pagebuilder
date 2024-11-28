@@ -140,6 +140,11 @@ def cli(argv: Sequence[str] | None = None) -> None:
         builder = PageBuilder(**kwargs)
         builders.append(builder)
 
+    # if the builders dist_paths are nested
+    # and a builder with a lower dist_path is processed later
+    # it will delete what builders above did
+    builders.sort(key=lambda b: b.dist_path)
+
     if args.watch:
         if not args.serve_dir:
             if len(builders) == 1:
@@ -149,11 +154,6 @@ def cli(argv: Sequence[str] | None = None) -> None:
                     'with 2 or more builders and no --serve-dir '
                     'impossible to imply from where to serve'
                 )
-
-        # if the builders dist_paths are nested
-        # and a builder with a lower dist_path is processed later
-        # it will delete what builders above did
-        builders.sort(key=lambda b: b.dist_path)
 
         addr, _, port = args.watch.partition(':')
         try:
