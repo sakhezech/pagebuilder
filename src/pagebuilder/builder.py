@@ -123,7 +123,6 @@ class Page:
 
         curr = self
         while True:
-            self.data = curr.data | self.data
             template_name = curr.data.get('template', None)
             if not template_name:
                 break
@@ -141,13 +140,15 @@ class Page:
         # NOTE: we merge the builder shared data here so we can freely
         # modify it whenever we please by hooks or any other means
         data = self.builder.shared_data | self.data
-        data['slot'] = self.builder.render_func(self.content, data)
-
         for template_name in self.template_stack:
             if template_name not in self.builder.templates:
                 raise KeyError(f"template doesn't exist: {template_name}")
             template = self.builder.templates[template_name]
             data = template.data | data
+
+        data['slot'] = self.builder.render_func(self.content, data)
+        for template_name in self.template_stack:
+            template = self.builder.templates[template_name]
             data['slot'] = self.builder.render_func(template.content, data)
         return data['slot']
 
