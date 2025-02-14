@@ -173,6 +173,11 @@ class Page:
 
             data_txt = raw_txt[data_start:data_end]
             data = yaml.load(data_txt, yaml.Loader)
+            if not isinstance(data, dict):
+                logger.debug(
+                    f'page data is not a dictionary; skipping: {path}; {data}'
+                )
+                data = {}
             txt = raw_txt[txt_start:]
         else:
             data = {}
