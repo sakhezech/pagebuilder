@@ -186,10 +186,13 @@ class Page:
         return cls(txt, data, rel_path, builder)
 
 
+http_logger = logging.getLogger('pagebuilder.http')
+
+
 class LoggingHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
         message = (format % args).translate(self._control_char_table)  # pyright: ignore[reportAttributeAccessIssue]
-        logger.debug(f'HTTP SERVER: {message}')
+        http_logger.debug(message)
 
 
 def serve(addr: str, port: int, directory: StrPath) -> None:
