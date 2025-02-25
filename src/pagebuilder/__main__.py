@@ -1,6 +1,6 @@
 import importlib
 import logging
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
@@ -96,16 +96,15 @@ def make_cli_parser() -> ArgumentParser:
     return parser
 
 
-def cli(argv: Sequence[str] | None = None) -> None:
-    parser = make_cli_parser()
-    args = parser.parse_args(argv)
-
+def setup_logging(args: Namespace) -> None:
     # TODO: temporary logging config, change later
     logging.basicConfig(
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     )
     logging.getLogger('pagebuilder').setLevel(args.logging)
 
+
+def get_builders_from_args(args: Namespace) -> list[PageBuilder]:
     builders: list[PageBuilder] = []
     if args.builder:
         for builder_path in args.builder:
@@ -149,6 +148,10 @@ def cli(argv: Sequence[str] | None = None) -> None:
         builder = PageBuilder(**kwargs)
         builders.append(builder)
 
+    return builders
+
+
+def run_builders(builders: list[PageBuilder], args: Namespace) -> None:
     # if the builders dist_paths are nested
     # and a builder with a lower dist_path is processed later
     # it will delete what builders above did
@@ -175,6 +178,13 @@ def cli(argv: Sequence[str] | None = None) -> None:
     else:
         for builder in builders:
             builder.build()
+
+
+def cli(argv: Sequence[str] | None = None) -> None:
+    args = make_cli_parser().parse_args(argv)
+    setup_logging(args)
+    builders = get_builders_from_args(args)
+    run_builders(builders, args)
 
 
 if __name__ == '__main__':
