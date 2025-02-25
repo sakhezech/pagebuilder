@@ -180,6 +180,14 @@ def run_builders(builders: list[PageBuilder], args: Namespace) -> None:
             builder.build()
 
 
+def cli(
+    builders: list[PageBuilder], argv: Sequence[str] | None = None
+) -> None:
+    args = make_cli_parser().parse_args(argv)
+    setup_logging(args)
+    run_builders(builders, args)
+
+
 def pagebuilder_cli(argv: Sequence[str] | None = None) -> None:
     args = make_pagebuilder_cli_parser().parse_args(argv)
     setup_logging(args)
