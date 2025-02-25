@@ -62,14 +62,7 @@ Assets are simply copied over unchanged.
 
 You can run `pagebuilder` from the CLI in two ways:
 
-by passing in the arguments like this:
-
-```bash
-# add --watch for watcher mode
-python -m pagebuilder --args ./.dist/ ./pages/ ./templates/ ./assets/
-```
-
-or by "importing" a builder from a module
+by "importing" a builder (or a list of builders) from a module
 
 ```bash
 # add --watch for watcher mode
@@ -84,8 +77,21 @@ my_builder = PageBuilder(
     './pages/',
     './templates/',
     './assets/',
-    dist_path='./.dist/',
+    './.dist/',
 )
+
+# this turns hello_world.py into its own cli
+if __name__ == '__main__':
+    from pagebuilder import cli
+
+    cli([builder])
+```
+
+or by passing in the arguments like this:
+
+```bash
+# add --watch for watcher mode
+python -m pagebuilder --args ./pages/ ./templates/ ./assets/ ./.dist/
 ```
 
 ### From code
