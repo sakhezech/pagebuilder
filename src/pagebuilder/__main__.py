@@ -8,11 +8,8 @@ from .__version__ import __version__
 from .builder import PageBuilder, serve
 
 
-def cli(argv: Sequence[str] | None = None) -> None:
-    parser = ArgumentParser(
-        prog='pagebuilder',
-        description='a static site generator i built',
-    )
+def make_parser() -> ArgumentParser:
+    parser = ArgumentParser()
 
     parser.add_argument(
         '-v',
@@ -60,6 +57,14 @@ def cli(argv: Sequence[str] | None = None) -> None:
         """,
     )
 
+    return parser
+
+
+def make_cli_parser() -> ArgumentParser:
+    parser = make_parser()
+    parser.prog = 'pagebuilder'
+    parser.description = 'a static site generator i built'
+
     builder_select_group = parser.add_mutually_exclusive_group(required=True)
 
     builder_select_group.add_argument(
@@ -88,7 +93,11 @@ def cli(argv: Sequence[str] | None = None) -> None:
         (can be used multiple times)
         """,
     )
+    return parser
 
+
+def cli(argv: Sequence[str] | None = None) -> None:
+    parser = make_cli_parser()
     args = parser.parse_args(argv)
 
     # TODO: temporary logging config, change later
