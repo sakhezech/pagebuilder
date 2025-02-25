@@ -8,7 +8,7 @@ from .__version__ import __version__
 from .builder import PageBuilder, serve
 
 
-def make_parser() -> ArgumentParser:
+def make_cli_parser() -> ArgumentParser:
     parser = ArgumentParser()
 
     parser.add_argument(
@@ -60,8 +60,8 @@ def make_parser() -> ArgumentParser:
     return parser
 
 
-def make_cli_parser() -> ArgumentParser:
-    parser = make_parser()
+def make_pagebuilder_cli_parser() -> ArgumentParser:
+    parser = make_cli_parser()
     parser.prog = 'pagebuilder'
     parser.description = 'a static site generator i built'
 
@@ -180,12 +180,12 @@ def run_builders(builders: list[PageBuilder], args: Namespace) -> None:
             builder.build()
 
 
-def cli(argv: Sequence[str] | None = None) -> None:
-    args = make_cli_parser().parse_args(argv)
+def pagebuilder_cli(argv: Sequence[str] | None = None) -> None:
+    args = make_pagebuilder_cli_parser().parse_args(argv)
     setup_logging(args)
     builders = get_builders_from_args(args)
     run_builders(builders, args)
 
 
 if __name__ == '__main__':
-    cli()
+    pagebuilder_cli()
