@@ -1,0 +1,26 @@
+[project]
+name = 'pagebuilder'
+dynamic = ['version']
+description = 'a static site generator i built'
+license = 'MIT'
+dependencies = ['pyyaml', 'combustache', 'coreca']
+
+[project.optional-dependencies]
+dev = ['ruff', 'faterunner']
+
+[project.urls]
+Homepage = 'https://github.com/sakhezech/pagebuilder'
+
+[tool.ruff]
+line-length = 79
+[tool.ruff.format]
+quote-style = 'single'
+[tool.ruff.lint]
+extend-select = ['I', 'E501']
+
+[tool.hatch.version]
+path = 'src/pagebuilder/__version__.py'
+
+[build-system]
+requires = ['hatchling']
+build-backend = 'hatchling.build'
